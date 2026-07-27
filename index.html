@@ -907,6 +907,10 @@ function finalizeSubmission(){
   if (skipBtn) { skipBtn.style.pointerEvents = 'none'; skipBtn.style.opacity = '0.5'; }
 
   const resultCards = buildResultCards(state.quizAnswers);
+  // Strip embedded base64 images before transmitting: they make up ~96% of the
+  // payload and would push the resultCards cell past the Google Sheets 50,000
+  // character limit. Product names and buy URLs are kept.
+  const resultCardsLite = JSON.parse(JSON.stringify(resultCards, (k, v) => k === 'img' ? undefined : v));
   const { code: skinProfileCode } = computeSkinProfileCode(state.quizAnswers);
   const quizAnswerLabels = {
     biggestChallenge: state.challengeAnswer !== undefined ? CHALLENGE_OPTS[state.challengeAnswer] : null,
@@ -923,7 +927,7 @@ function finalizeSubmission(){
     email: state.email, handle: state.handle,
     emailReport: state.emailReport, betaOptIn: state.betaOptIn,
     quizAnswers: state.quizAnswers, quizAnswerLabels,
-    resultCards,
+    resultCards: resultCardsLite,
     eventLog: state.eventLog,
     completedAt: new Date().toISOString(),
   };
