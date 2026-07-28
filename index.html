@@ -356,10 +356,10 @@
 const CONFIG = {
   WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbxcekWIzqDr2ZdOiA4IDWj0p9i8JVHbbfB4aXxaW7TPMt4k1mGsOxDNc_dSzomAs-D8qA/exec",
   GOOGLE_ADS_ID: "AW-18340086822",
-  // Paste the conversion label from Google Ads ▸ Goals ▸ Conversions ▸ your
-  // action ▸ "Use Google Tag Manager". It looks like "AbC-D_efG-h12_34-567".
-  // Until this is filled in, conversions are NOT reported to Google Ads.
-  CONVERSION_LABEL: "",
+  // Conversion label from Google Ads ▸ Goals ▸ Conversions.
+  // Fires once per completed submission — NOT on page load.
+  CONVERSION_LABEL: "re2dCMje-9ccEKaInqIE",
+  CONVERSION_CURRENCY: "KRW",
 };
 // Point this at the real hosted privacy.html once deployed alongside this file
 // (see privacy.html provided separately). Update this one line if the path changes.
@@ -421,7 +421,7 @@ function fireAdsConversion(label){
   try {
     gtag('event', 'conversion', {
       send_to: CONFIG.GOOGLE_ADS_ID + '/' + CONFIG.CONVERSION_LABEL,
-      value: 1.0, currency: 'USD',
+      value: 1.0, currency: CONFIG.CONVERSION_CURRENCY,
       transaction_id: state.sessionId + (label ? ':' + label : ''),
     });
   } catch(e){}
