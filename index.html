@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18340086822"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-18340086822');
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GLOW UP — Product Fit Check (Smoke Test)</title>
@@ -347,6 +355,11 @@
    ================================================================== */
 const CONFIG = {
   WEBHOOK_URL: "https://script.google.com/macros/s/AKfycbxcekWIzqDr2ZdOiA4IDWj0p9i8JVHbbfB4aXxaW7TPMt4k1mGsOxDNc_dSzomAs-D8qA/exec",
+  GOOGLE_ADS_ID: "AW-18340086822",
+  // Paste the conversion label from Google Ads ▸ Goals ▸ Conversions ▸ your
+  // action ▸ "Use Google Tag Manager". It looks like "AbC-D_efG-h12_34-567".
+  // Until this is filled in, conversions are NOT reported to Google Ads.
+  CONVERSION_LABEL: "",
 };
 // Point this at the real hosted privacy.html once deployed alongside this file
 // (see privacy.html provided separately). Update this one line if the path changes.
@@ -398,6 +411,20 @@ function trackEvent(name, data){
   for (const k of AD_SAFE_KEYS) if (k in data) adSafe[k] = data[k];
   if (typeof fbq === 'function') { try { fbq('trackCustom', name, adSafe); } catch(e){} }
   if (typeof ttq === 'function') { try { ttq.track(name, adSafe); } catch(e){} }
+  if (typeof gtag === 'function') { try { gtag('event', name, adSafe); } catch(e){} }
+}
+
+/* Reports a Google Ads conversion. Silently does nothing until
+   CONFIG.CONVERSION_LABEL is filled in, so it is safe to ship as-is. */
+function fireAdsConversion(label){
+  if (typeof gtag !== 'function' || !CONFIG.CONVERSION_LABEL) return;
+  try {
+    gtag('event', 'conversion', {
+      send_to: CONFIG.GOOGLE_ADS_ID + '/' + CONFIG.CONVERSION_LABEL,
+      value: 1.0, currency: 'USD',
+      transaction_id: state.sessionId + (label ? ':' + label : ''),
+    });
+  } catch(e){}
   // Per-event Sheet writes intentionally disabled — only the final
   // "submission" reaches the Sheet. Drop-off data still exists via
   // console + the eventLog field bundled into that one final row.
@@ -958,13 +985,13 @@ function finalizeSubmission(){
   };
   console.log('[GLOW UP] FINAL submission payload:', payload);
 
-  sendToSheet(payload).then(() => {
-    trackEvent('smoketest_completed', {});
+  const done = () => {
+    trackEvent('smoketest_completed', { hasEmail: !!state.email, emailReport: state.emailReport, betaOptIn: state.betaOptIn });
+    // A lead is a submission where the visitor actually gave us an email.
+    fireAdsConversion(state.email ? 'lead' : 'completed');
     goTo('thanks');
-  }).catch(() => {
-    trackEvent('smoketest_completed', {});
-    goTo('thanks');
-  });
+  };
+  sendToSheet(payload).then(done).catch(done);
 }
 
 /* ==================================================================
@@ -1089,15 +1116,6 @@ document.getElementById('emailInput').addEventListener('input', function(){
 });
 trackEvent('landing_viewed');
 updateProgress(0);
-</script>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18340086822"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'AW-18340086822');
 </script>
 </body>
 </html>
